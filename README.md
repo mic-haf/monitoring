@@ -1,0 +1,219 @@
+-   [Monitoring system](#monitoring-system)
+-   [Hardware einrichten](#hardware-einrichten)
+    -   [Monitoring Station einrichten](#monitoring-station-einrichten)
+    -   [RBL installation](#rbl-installation)
+-   [rpi einrichten](#rpi-einrichten)
+-   [NTi XL2 SLM](#nti-xl2-slm)
+    -   [XL2SLM Optionen + Messprotokoll](#xl2slm-optionen-messprotokoll)
+    -   [Python module NTiXL2](#python-module-ntixl2)
+-   [Remote Server Einrichten](#remote-server-einrichten)
+-   [pi-rbl tasks](#pi-rbl-tasks)
+    -   [Start Messung](#start-messung)
+    -   [Start/stop Messung Daten auf XL2 abholen](#startstop-messung-daten-auf-xl2-abholen)
+    -   [Daten im remote server transferieren](#daten-im-remote-server-transferieren)
+    -   [Kontrolle der Messung](#kontrolle-der-messung)
+    -   [Kontrolle von monitor-station Werte](#kontrolle-von-monitor-station-werte)
+-   [Remote Server tasks](#remote-server-tasks)
+    -   [Betriebs Daten im DB integrieren](#betriebs-daten-im-db-integrieren)
+    -   [Wetter Daten im DB integrieren](#wetter-daten-im-db-integrieren)
+    -   [Kontrolle des System](#kontrolle-des-system)
+    -   [REST API herstellen](#rest-api-herstellen)
+    -   [Backup Lösung](#backup-losung)
+    -   [Darstellung der ergebnisse/Statistik durch Webserver](#darstellung-der-ergebnissestatistik-durch-webserver)
+
+Monitoring system
+=================
+
+Diesem Dokument stellt alle Punkte, welche notwendig sind um das Monitoringsystem im RBL aufbauen zu können, zusammen.
+
+Punkte haben 3 wichtigkeitsklassen: 1. notwendig, 2. wichtig, 3. optional Punkte haben 4 Staen: 1. Done, 2.Working Progress (WP) , 3. Todo Wir arbeiten zu dritt: ESR, GL, MH
+
+------------------------------------------------------------------------
+
+Hardware einrichten
+===================
+
+Monitoring Station einrichten
+-----------------------------
+
+> `Done`
+
+Eine liste von nötige Teile wird erstellt.
+
+RBL installation
+----------------
+
+> `Todo`, `MH`,`ESR`
+
+Am 19-Juli im RBL abgemacht. Nötige Werkzeuge/Teile:
+
+-   Holzplatte?
+-   Schrauben
+-   Alluminium profilen + Winkeln + Mikrophonschraube
+-   Absorptionsschaum
+-   klebeband
+-   Bohrmaschine
+
+------------------------------------------------------------------------
+
+rpi einrichten
+==============
+
+> `Notwendig`,`Done/WP`
+
+Das einrichten des rpi besteht aus mehrere Punkte:
+
+-   Betriebsystem installation und setup
+-   User Verwaltung
+-   Internetzugang
+-   Reverse ssh Tunnel einrichten
+-   ...
+
+Alle diese Schritte sind im [rpi-Einrichten dokument](rpi/rpi_setup.md) im `pi-rbl` Ordner enthalten.
+
+------------------------------------------------------------------------
+
+NTi XL2 SLM
+===========
+
+XL2SLM Optionen + Messprotokoll
+-------------------------------
+
+> `Notwendig`, `Todo`, `MH`, `ESR`
+
+Folgende Tätigkeiten sind zu tun
+
+-   Startup optionen festlegen
+-   Messsprofil erstellen
+-   Kalibrierung
+
+Alle diese Schritte sind im [XL2-Einrichten dokument](xl2/xl2_setup.md) im `XL2` Ordner enthalten.
+
+\*\* Mithilfe diesem dokument ist es möglich den `ntixl2.parse` python module zu implementieren und die förderungen für den lärmteil am db zu festlegen.\*\*
+
+Python module NTiXL2
+--------------------
+
+> `Notwendig`, `WP`, `ESR`,`GL`
+
+der Modul besteht aus zwei teile:
+
+-   Serielle Steuerung des XL2 `Done/WP`
+-   Tools zum Parsen der erzeugte files `Todo`, `GL`
+
+mehr informationen im [ntixl2 repo](https://github.com/e-sr/NTiXL2)
+
+------------------------------------------------------------------------
+
+Remote Server Einrichten
+========================
+
+> `Notwendig`,`WP`,`GL`
+
+-   Server besorgen + administratives
+-   rpi - Remoteserver ssh-tunnel einstellen
+-   datenbank
+-   ....
+
+Diese Schritte sollten im einen [Dokument](remote_server/remote_server_setup.md) beschrieben werden.
+
+------------------------------------------------------------------------
+
+pi-rbl tasks
+============
+
+pi- rbl \*tasks\*\* sind programme/scripts welche auf pi-rbl laufen werden. Tasks implementiern die Aufgaben/Funktionalität der Monitoring station/server Ein log für fehlerkontrolle der tasks ist zu denken
+
+Start Messung
+-------------
+
+> `Notwendig`, `Todo`, `GL`
+
+1.  Reset Xl2
+2.  Messprofil wählen
+3.  Messung Starten
+
+Ideen im Beispiele beim [ntixl2 repo](https://github.com/e-sr/NTiXL2)
+
+Start/stop Messung Daten auf XL2 abholen
+----------------------------------------
+
+> `Notwendig`, `Todo`, `GL`
+
+1.  Messung Stoppen
+2.  XL2 im mass Storage modus umschalten
+3.  Daten auf rpi transferieren (auch *.wav* welche als spezialfälle/Interessant gelten)
+4.  Unnötige Daten auf XL2 löschen
+5.  XL2 wieder bereit machen; im serial mode umschalten
+
+Ideen im Beispiele beim [ntixl2 repo](https://github.com/e-sr/NTiXL2)
+
+Daten im remote server transferieren
+------------------------------------
+
+> `Notwendig`, `Todo`, `GL`
+
+1.  XL2 Daten parsen
+2.  prozessieren der XL2 Daten um Spezialfälle wo *.wav* Files nötig wären zu detektieren. Beim nächsten abholen der Daten Abholen
+3.  Daten im DB hochladen
+4.  unnötige Daten auf pi-rbl löschen
+
+Kontrolle der Messung
+---------------------
+
+> `Wichtig`, `Todo`, `GL`
+
+Kontrolle von monitor-station Werte
+-----------------------------------
+
+> `optional`, `Todo`, `GL`
+
+-   ssh-tunnel monitoring
+-   Stromversorgung kontrollieren
+-   Netzverbindung
+
+------------------------------------------------------------------------
+
+Remote Server tasks
+===================
+
+Betriebs Daten im DB integrieren
+--------------------------------
+
+> `Wichtig`, `Todo`, `GL`
+
+Zum diskutieren
+
+Wetter Daten im DB integrieren
+------------------------------
+
+> `Wichtig`, `Todo`, `GL`
+
+Mithilfe von meteoblue REST API
+
+Kontrolle des System
+--------------------
+
+> `Wichtig/optional`, `Todo`, `GL`
+
+kontrolle des ssh tunnel
+
+REST API herstellen
+-------------------
+
+> `Wichtig/optional`, `Todo`, `GL`
+
+-   für das hochladen von Daten (`òptional` falls die direkte verbindung funktioniert)
+-   für das abholen von Daten
+
+Backup Lösung
+-------------
+
+???
+
+Darstellung der ergebnisse/Statistik durch Webserver
+----------------------------------------------------
+
+> `Wichtig/optional`, `Todo`, `GL`
+
+Vielleicht verwendung von shiny

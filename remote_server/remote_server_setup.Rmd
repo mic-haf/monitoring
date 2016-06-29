@@ -1,0 +1,9 @@
+---
+title: "Server Setup"
+author: "ESR"
+output:
+  md_document:
+    variant: markdown_github
+    toc: true
+    toc_depth: 2
+---
