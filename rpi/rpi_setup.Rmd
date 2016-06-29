@@ -92,7 +92,8 @@ sudo apt-get update
 sudo apt-get upgrade
 ```
 
-w****
+****
+
 ## Internetverbindung einrichten durch UMTS-stik
 
 ### HI-link alternative
@@ -201,18 +202,20 @@ Ein tool in Raspbian welches ermöglicht services am startup aufzubauen ist `sys
     #Check to see if it started:
     sudo systemctl status -l tunnel-RFCasa.service
     ```
-### Tipps/Usage
+    
+### SSH Tipps/Usage
+
 #### Local port forwarding von server_ip:2210 auf localhost:2210
 
 Im putty eine verbindung herstellen welche entspricht
 
-`ssh -L 2210 server_ip:2210 `
+  `ssh -L 2210 server_ip:2210 `
 
 dann befindet sich den pi-rbl auf localhost:22.
 
 Mithilfe von key kann man passwortfreie verbindungen herstellen. Auf server_ip müssen die zugehörigen public keys kopiert werden. 
 
-###  rpi remote Verbindung mit putty
+####  rpi remote Verbindung mit putty
 
 Mit putty eine verbindung herstellen welche entspricht
 
@@ -224,6 +227,7 @@ Mit putty eine verbindung herstellen welche entspricht
 Verbindung mit sftp protokoll auf localhost:2210
 
 `ssh -p 2210 pi-rbl@localhost`
+
 
 ****
 

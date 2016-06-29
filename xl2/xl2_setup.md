@@ -20,7 +20,8 @@ With this rule we have the following results:
 -   Fixed device name (`XL2-sd`) if connected as mass storage device
 -   automount to fixed path (`/media/XL2-sd`) if device connected as mass storage
 
-\`\`\` \#! /bin/sh
+\`\`\` 
+    \#! /bin/sh
 
     #######################################
     #    XL2SLM device rules              #
@@ -48,8 +49,3 @@ todo
 
 Aktivieren des Remote Measurement
 ---------------------------------
-
-------------------------------------------------------------------------
-
-Profil RBL herstellen
----------------------
