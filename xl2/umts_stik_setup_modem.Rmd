@@ -1,0 +1,69 @@
+
+### alternative (modem modus, instabil)
+
+[link](https://github.com/EMnify/doc/wiki/How-to-use-a-Huawei-E3531-in-Modem-Mode)
+
+#### USB-stick E3531i im modem modus einschalten
+
+notwendig die pakete:`udev, libusb-dev, usb_modeswitch`. 
+
+`lsusb` eingeben :
+
+1. hat den USB-stick den name `0x12d1:0x1f01`. Das bedeutet mass storage device.
+2. hat den USB-stick den name `0x12d1:0x155e`. Das bedeutet modem modus.
+
+
+von 1. zu 2. wird erreicht durch
+
+```
+sudo usb_modeswitch -W -I -v 12d1 -p 1f01 -M 55534243123456780000000000000011063000000100010000000000000000 
+```
+oder mit dem Befehl 
+
+```
+sudo usb_modeswitch -c /etc/usb_modeswitch.d/12d1\:1f01
+```
+wobei der Datei "/etc/usb_modeswitch.d/12d1:1f01" mit Inhalt
+
+```
+# Huawei E3531 custom config
+TargetVendor=0x12d1
+TargetProduct=0x155e
+MessageContent="55534243123456780000000000000011063000000100010000000000000000"
+```
+angelegt wurde.
+
+als letzes um es automatisiert zu haben beim einschieben der USB-stik soll man eine `udev` regel herstellen durch das anlegen der Datei /etc/udev/rules.d/40-usb_modeswitch.rules mit folgendem Inhalt
+
+```
+# eigene udev-Regeln für UMTS-Sticks 
+ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="12d1", ATTRS{idProduct}=="1f01", RUN+="/usr/sbin/usb_modeswitch -c /etc/usb_modeswitch.d/12d1\:1f01"
+```
+`lsusb` sollte jetz 2 geben.
+
+#### gprs interface einrichten
+
+Folgende drei Zeilen an /etc/network/interfaces hinzufügen
+```
+auto gprs
+iface gprs inet ppp
+provider gprs
+```
+
+Neue provider "gprs"mit den  File 'grps' in /etc/ppp/peers  mit folgendem Inhalt
+```
+user "swisscom"
+connect "/usr/sbin/chat -v -f /etc/chatscripts/gprs -T gprs.swisscom.ch"
+/dev/ttyUSB0# das ist zu prüfen
+noipdefault
+defaultroute
+replacedefaultroute
+hide-password
+noauth
+persist
+usepeerdns
+Bringing up the new interface manually (it will come up automatically on next boot)
+```
+dann einschalten mit `ifup gprs`
+
+Die Internetverbindung sollte jetzt beim boot eingerichtet sein.

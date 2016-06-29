@@ -26,51 +26,45 @@ sudo raspi-config
 ```
 - normal keyboard (105tasten) und ch-german
 - locale to`en_GB_utf-8`
-- zeit
+- Zeit
 - ...
 
-am Ende des raspi-config
-
-```
-sudo reboot
-```
- 
-###  Falls nicht `jessie ligth` autologin und startx deaktivieren
-
-Raspbian Jesse statet die `startx` session (graphische oberfläche) beim startup automatisch mit username **pi**. Diese Einstellung ist abzuschalten.
-
-Autologin in `raspi-config` deaktivieren. 
-Startx ausschalten mit `sudo systemctl set-default multi-user.target  `
+dann `reboot`
 
 
 ## Username wechseln
 
 Standard user: **pi**, pw: **raspberry**
 
-Wechseln zu neue user: **pi-rbl**, pw: **akustik16**
+> Wechseln zu neue user: **pi-rbl**
+> pw: **akustik16**
 
-wie folgt:
+Das erfolft mit folgende schtritten:
 
 1. root pw herstellen `sudo passwd root`
-2. logout and login in root
+2. logout and login in **root**
 3. username wechseln `usermod -l newname pi`
 4. home dir wechseln `usermod -m -d /home/newname newname`
-5. logout root login pi-rbl
+5. logout root login **pi-rbl**
 6. pw wechseln `sudo passwd`
 7. `sudo-visudo`
 8. `sudo groupmod -n pi-rbl pi`
 8. `sudo passwd -l root `
 
-## Bildschirm drehen
+## Bildschirm Einstellungen
+### Bildschirm drehen
 
 1. file öffnen und modifizieren: `sudo nano /boot/config.txt`
 2. hizufügen `display_rotate=2`
 
-## Fontsize am terminal einstellen so dass den bildschirm lesbar wird
+### Fontsize am terminal Einstellen 
 
-Im File /etc/default/console-setup folgenden Zeilen Einfügen:
+Den Bildschirm soll lesbar sein
+
+Im File `/etc/default/console-setup` folgenden Zeilen Einfügen:
 ```
-FONTFACE="Terminus" und FONTSIZE="16x32" anstatt FONTFACE="" und FONTSIZE=""
+# FONTFACE="" und FONTSIZE=""
+FONTFACE="Terminus" und FONTSIZE="16x32" 
 ```
 
 ## Wifi einrichten 
@@ -78,18 +72,18 @@ FONTFACE="Terminus" und FONTSIZE="16x32" anstatt FONTFACE="" und FONTSIZE=""
 Das ist vorübergehend falls rpi noch kein funktionierendes USB-stick verfügt.
 [wifi](https://www.raspberrypi.org/documentation/configuration/wireless/wireless-cli.md)
 
-Nützliche Befehlen:
+Im File `/etc/default/console-setup` folgenden Zeilen Einfügen:
 
 ```
-sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
-#add
-#network={
-#    ssid="The_ESSID_from_earlier"
-#    psk="Your_wifi_password"
-#}
+network={
+    ssid="The_ESSID_from_earlier"
+    psk="Your_wifi_password"
+}
+```
+dann folgende Befehlen:
+```
 sudo iwup wlan0
 sudo iwdown wlan0
-
 ```
 
 ## Betriebsystem update-upgrade
@@ -98,108 +92,40 @@ sudo apt-get update
 sudo apt-get upgrade
 ```
 
-## Internetverbindung einrichten
+w****
+## Internetverbindung einrichten durch UMTS-stik
 
 ### HI-link alternative
 
 den RPI verbindet sich am stick durch ip protokoll. 
 
 The Huawei modem is shown with device ID 
-- 12d1:1f01 if mass storage
-- 12d1:14db if Hi-link.
 
-instalieren:(enthält modeswitch)
+- **12d1:1f01** if mass storage
+- **12d1:14db** if Hi-link.
 
-`sudo apt-get install sg3-utils`
+1. Paket **sg3-utils** installieren: `sudo apt-get install sg3-utils`
 
-To automate the mode switch, create a new file 
+2. To automate the mode switch; File `/etc/udev/rules.d/10-Huawei.rules` erzeugen und folgenden Zeilen Einfügen:
+    
+    ```
+    SUBSYSTEMS=="usb", ATTRS{modalias}=="usb:v12D1p1F01*", SYMLINK+="hwcdrom", RUN+="/usr/bin/sg_raw /dev/hwcdrom 11 06 20 00 00 00 00 00 01 00"
+    ```
+    jetzt sollte den UMTS-USB-stick im richtige Modus (richtige ID) sein.
 
-`sudo nano /etc/udev/rules.d/10-Huawei.rules`
+4. Network interfaces anpassen: Im File `/etc/network/interfaces` folgenden Zeilen Einfügen:
 
-and paste in the following content:
+    ```
+    allow-hotplug eth1
+    iface eth1 inet dhcp
+    ```
+5. reboot
 
-```
-SUBSYSTEMS=="usb", ATTRS{modalias}=="usb:v12D1p1F01*", SYMLINK+="hwcdrom", RUN+="/usr/bin/sg_raw /dev/hwcdrom 11 06 20 00 00 00 00 00 01 00"
-```
-jetzt sollte den stick im richtige modus (richtige ID) sein.
 
-network interfaces `sudo nano /etc/network/interfaces` anpassen:
-
-```
-allow-hotplug eth1
-iface eth1 inet dhcp
-```
 Following the reboot, the Pi should now say "My IP address is xxx.xxx.xx.xx 192.168.1.100", where xxx.xxx.xx.xx = the IP address assigned by your setup to the RJ45 ethernet socket, and 192.168.1.100 is the address assigned to the Pi on the Huawei pseudo 'network adapter'.
 
-### alternative (modem modus, instabil)
 
-[link](https://github.com/EMnify/doc/wiki/How-to-use-a-Huawei-E3531-in-Modem-Mode)
-
-#### USB-stick E3531i im modem modus einschalten
-
-notwendig die pakete:`udev, libusb-dev, usb_modeswitch`. 
-
-`lsusb` eingeben :
-
-1. hat den USB-stick den name `0x12d1:0x1f01`. Das bedeutet mass storage device.
-2. hat den USB-stick den name `0x12d1:0x155e`. Das bedeutet modem modus.
-
-
-von 1. zu 2. wird erreicht durch
-
-```
-sudo usb_modeswitch -W -I -v 12d1 -p 1f01 -M 55534243123456780000000000000011063000000100010000000000000000 
-```
-oder mit dem Befehl 
-
-```
-sudo usb_modeswitch -c /etc/usb_modeswitch.d/12d1\:1f01
-```
-wobei der Datei "/etc/usb_modeswitch.d/12d1:1f01" mit Inhalt
-
-```
-# Huawei E3531 custom config
-TargetVendor=0x12d1
-TargetProduct=0x155e
-MessageContent="55534243123456780000000000000011063000000100010000000000000000"
-```
-angelegt wurde.
-
-als letzes um es automatisiert zu haben beim einschieben der USB-stik soll man eine `udev` regel herstellen durch das anlegen der Datei /etc/udev/rules.d/40-usb_modeswitch.rules mit folgendem Inhalt
-
-```
-# eigene udev-Regeln für UMTS-Sticks 
-ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="12d1", ATTRS{idProduct}=="1f01", RUN+="/usr/sbin/usb_modeswitch -c /etc/usb_modeswitch.d/12d1\:1f01"
-```
-`lsusb` sollte jetz 2 geben.
-
-#### gprs interface einrichten
-
-Folgende drei Zeilen an /etc/network/interfaces hinzufügen
-```
-auto gprs
-iface gprs inet ppp
-provider gprs
-```
-
-Neue provider "gprs"mit den  File 'grps' in /etc/ppp/peers  mit folgendem Inhalt
-```
-user "swisscom"
-connect "/usr/sbin/chat -v -f /etc/chatscripts/gprs -T gprs.swisscom.ch"
-/dev/ttyUSB0# das ist zu prüfen
-noipdefault
-defaultroute
-replacedefaultroute
-hide-password
-noauth
-persist
-usepeerdns
-Bringing up the new interface manually (it will come up automatically on next boot)
-```
-dann einschalten mit `ifup gprs`
-
-Die Internetverbindung sollte jetzt beim boot eingerichtet sein.
-
+****
 
 ##SSH Reverse tunnel einrichten
 
@@ -212,7 +138,7 @@ Remote Zugriff wird über ssh erfolgen. Das ermoglicht zugriff auf terminal und 
 Notwendig:
 - linux server mit bekannte fixes`server_ip` (oder hostname), `user` und `pw`. Diesem Server muss über Internet zugreifbar sein.
 - Für Window is ein ssh client notwendig. Eines davon ist `putty`
-- Für fiel transfer über sftp ist `FileZilla` ein praktisches client
+- Für File Transfer über sftp ist `FileZilla` ein praktisches Client
 
 ### Reverse  tunnel bauen und testen
 
@@ -246,38 +172,37 @@ chmod 600 ~/.ssh/authorized_keys
 
 ### Reverse tunnel am startup  automatisieren 
 
-Ein tool in Raspbian welches ermöglicht services am startup aufzubauen ist `systemd`. Damit wird das oben am startup automatisiert.
+Ein tool in Raspbian welches ermöglicht services am startup aufzubauen ist `systemd`. Damit wird das remote tunnel am startup automatisiert.
 
-Create the systemd unit file  /etc/systemd/system/tunnel-RFCasa.service:
+1. Neues systemd unit file  `/etc/systemd/system/tunnel-RFCasa.service`` mit Inhalt:
+    
+    ```
+    [Unit]
+    Description= Create reverse tunnel from pi-rbl to casa. port forwarded 22 on 2210
+    After=network.target
+    
+    [Service]
+    Type=simple
+    User=pi-rbl
+    Environment="AUTOSSH_GATETIME=0"
+    ExecStart=/usr/bin/autossh -M 0 -o ExitOnForwardFailure=yes  -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -N -R 2210:localhost:22 esr@vc109.duckdns.org
+    
+    RestartSec=5
+    Restart=always
+    
+    [Install]
+    WantedBy=multi-user.target
+    
+    ```
+2. Befehle eingeben:
 
-```
-[Unit]
-Description= Create reverse tunnel from pi-rbl to casa. port forwarded 22 on 2210
-After=network.target
-
-[Service]
-Type=simple
-User=pi-rbl
-Environment="AUTOSSH_GATETIME=0"
-ExecStart=/usr/bin/autossh -M 0 -o ExitOnForwardFailure=yes  -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -N -R 2210:localhost:22 esr@vc109.duckdns.org
-
-RestartSec=5
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-
-```
-
-
-```
-sudo systemctl restart tunnel-RFCasa.service
-#Check to see if it started:
-
-sudo systemctl status -l tunnel-RFCasa.service
-```
-
-### Local port forwarding von server_ip:2210 auf localhost:2210
+    ```
+    sudo systemctl restart tunnel-RFCasa.service
+    #Check to see if it started:
+    sudo systemctl status -l tunnel-RFCasa.service
+    ```
+### Tipps/Usage
+#### Local port forwarding von server_ip:2210 auf localhost:2210
 
 Im putty eine verbindung herstellen welche entspricht
 
@@ -287,75 +212,23 @@ dann befindet sich den pi-rbl auf localhost:22.
 
 Mithilfe von key kann man passwortfreie verbindungen herstellen. Auf server_ip müssen die zugehörigen public keys kopiert werden. 
 
-#### verbindung mit putty
+###  rpi remote Verbindung mit putty
 
 Mit putty eine verbindung herstellen welche entspricht
 
 `ssh -p 2210 pi-rbl@localhost`
 
 
-#### Sftp verbindung mit Filezilla
+#### Sftp auf pi-rbl mit Filezilla
 
 Verbindung mit sftp protokoll auf localhost:2210
 
 `ssh -p 2210 pi-rbl@localhost`
 
-
+****
 
 ## ykush USB-hub einrichten
 
 Installation ist im README file im ykush ordner beschrieben
 
-## GIT und repos einrichten
 
-1. git  mit `sudo apt-get install git` installieren
-2. repo clonen unter home verzeichniss
-
-----
-
-# Lärmmessgerät NTi XL2
-
-### mount
-
-`bash sudo nano /etc/udev/rules.d/11-XL2.rules`
-
-
-
-```
-#! /bin/sh
-
-#######################################
-#    USB Flash Drives automounting    #
-#######################################
-ENV{mount_options_vfat}="gid=100,dmask=000,fmask=111,utf8,flush,rw,noatime,users"
-ENV{mntDir}="/media/XL2-sd"
-
-# start at sdb to ignore the system hard drive
-ACTION == "add", KERNEL=="sd[b-z]?", ATTRS{idVendor}=="1a2b",ATTRS{idProduct}=="0003", GROUP="users", SYMLINK+="XL2-sd" ,RUN+="/bin/mkdir -p '%E{mntDir}'" ,RUN+="/bin/mount /dev/XL2-sd -t auto '%E{mntDir}'"
-
-```
- to activate new rules
-`sudo udevadm control --reload-rules `
-
-### umount
-
-`~/bin/safe_remove_XL2-sd`
-
-```bash
-#!/bin/bash
-# safely unmount and eject XL2-sd device if present
-device="/dev/XL2-sd"
-mountDir="/media/XL2-sd"
-sudo umount -l $mountDir
-# echo 'umount device '$device''
-sudo eject $device
-sudo rmdir $mountDir
-
-```
-
-` sudo chmod 755 safe_remove_XL2-sd`
-
-now is executable
-
-## Aktivieren des Remote Measurement
-## Profil RBL herstellen
