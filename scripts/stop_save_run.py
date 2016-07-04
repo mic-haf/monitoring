@@ -13,7 +13,7 @@ max_allowed_storage_percentage = 5
 
 def write_to_file_timestamped(message):
     with open(path, "a") as logfile:
-        logfile.write(datetime.datetime.now().strftime("%Y-%m-%d %H%M:%S"))
+        logfile.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         logfile.write(' {0}\n'.format(message))
 
 
