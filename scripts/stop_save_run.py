@@ -78,7 +78,7 @@ try:
     os.system("sudo rm -f /media/XL2-sd/Projects/RBL/*.XL2")
 
     storage_percentage = get_xl2_storage()
-    print(str(storage_percentage) + ' % of storage filled\n')
+    write_to_file_timestamped(str(storage_percentage) + ' % of storage full\n')
 
     while get_xl2_storage() > max_allowed_storage_percentage:
         os.system("ls -rt /media/XL2-sd/Projects/RBL/*.wav | tail -1 | xargs sudo rm -i -f")
