@@ -6,7 +6,7 @@ import ntixl2
 from ntixl2.xl2 import XL2SLM
 from ntixl2.message import *
 path = os.path.realpath(__file__)
-path = str(path).replace('.py','.txt')
+path = str(path).replace('.py', '.txt')
 
 max_allowed_storage_percentage = 5
 
