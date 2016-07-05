@@ -65,7 +65,7 @@ try:
     print("device_status: ", xl2.device_status)
     print("switch device status to MASS", xl2.to_mass())
     i = 0
-    while not mass_connected() and i < 60:
+    while not mass_connected() and i < 180:
         time.sleep(1)
         i += 1
     # Get readout time and date and create folder
