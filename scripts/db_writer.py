@@ -38,10 +38,26 @@ def add_processed(d):
         record.write(d + '\n')
 
 
-class Setup(Base):
-    __tablename__ = 'setups'
+class WeatherSample(Base):
+    __tablename__ = 'weathersample'
 
-    id = Column(Integer, primary_key=True)
+    weathersample_id = Column(Integer, primary_key=True)
+    timestamp = Column(TIMESTAMP)
+    temperature = Column(DECIMAL(3,1))
+    sunshine = Column(DECIMAL(3,1))
+    precipitation = Column(DECIMAL(3.1))
+    wind_direction = Column(SMALLINT)
+    wind_speed = Column(DECIMAL(3,1))
+    gust_peak = Column(DECIMAL(3,1))
+    humidity = Column(SMALLINT)
+
+    station = Column(JSON)
+
+
+class Setup(Base):
+    __tablename__ = 'setup'
+
+    setup_id = Column(Integer, primary_key=True)
     device_info = Column(String(50))
     mic_type = Column(String(100))
     mic_sensitivity_mV_per_Pa = Column(DECIMAL(3, 1))
@@ -53,34 +69,38 @@ class Setup(Base):
 
 
 class BatchInfo(Base):
-    __tablename__ = 'batchinfos'
+    __tablename__ = 'batchinfo'
 
-    id = Column(Integer, primary_key=True)
+    batchinfo_id = Column(Integer, primary_key=True)
     start = Column(TIMESTAMP)
     end = Column(TIMESTAMP)
     wav_file = Column(String(300))
 
 
 class SpectrumSample(Base):
-    __tablename__ = 'spectra'
+    __tablename__ = 'spectrum'
 
-    id = Column(Integer, primary_key=True)
+    spectrum_id = Column(Integer, primary_key=True)
     timestamp = Column(TIMESTAMP, unique=True)
     band_hz = Column(JSON)
     spectrum_LZeq_dt_f_dB = Column(JSON)
-    setup_id = Column(Integer, ForeignKey('setups.id'))
-    setup = relationship("Setup")
-    batchinfos_id = Column(Integer, ForeignKey('batchinfos.id'))
-    batch = relationship("BatchInfo")
+    setup_id = Column(Integer, ForeignKey('setup.setup_id'))
+    setup = relationship("Setup", foreign_keys=[setup_id])
+
+    batchinfo_id = Column(Integer, ForeignKey('batchinfo.batchinfo_id'))
+    batch = relationship("BatchInfo", foreign_keys=[batchinfo_id])
+
+    weathersample_id = Column(Integer, ForeignKey('weathersample.weathersample_id'))
+    weather_sample = relationship("WeatherSample", foreign_keys=[weathersample_id])
 
     def __repr__(self):
         return "<Timestamp: {} SPECTRUM>".format(self.timestamp)
 
 
 class LevelSample(Base):
-    __tablename__ = 'levels'
+    __tablename__ = 'level'
 
-    id = Column(Integer, primary_key=True)
+    level_id = Column(Integer, primary_key=True)
     timestamp = Column(TIMESTAMP, unique=True)
     LAeq_dB = Column(DECIMAL(3, 1))
     LAeq_dt_dB = Column(DECIMAL(3, 1))
@@ -88,10 +108,14 @@ class LevelSample(Base):
     LZeq_dt_dB = Column(DECIMAL(3, 1))
     LZFmin_dt_dB = Column(DECIMAL(3, 1))
     LZFmax_dt_dB = Column(DECIMAL(3, 1))
-    setup_id = Column(Integer, ForeignKey('setups.id'))
-    setup = relationship("Setup")
-    batchinfos_id = Column(Integer, ForeignKey('batchinfos.id'))
-    batch = relationship("BatchInfo")
+    setup_id = Column(Integer, ForeignKey('setup.setup_id'))
+    setup = relationship("Setup", foreign_keys=[setup_id])
+
+    batchinfo_id = Column(Integer, ForeignKey('batchinfo.batchinfo_id'))
+    batch = relationship("BatchInfo", foreign_keys=[batchinfo_id])
+
+    weathersample_id = Column(Integer, ForeignKey('weathersample.weathersample_id'))
+    weather_sample = relationship("WeatherSample", foreign_keys=[weathersample_id])
 
     def __repr__(self):
         return "<Timestamp: {}, LAeq [dB]: {}, LAeq_dt [dB]: {}, LZeq [dB]: {}, LZeq_dt [dB]: {}, LZFmin_dt [dB]: {}, " \
@@ -100,6 +124,9 @@ class LevelSample(Base):
 
 
 class DBConnector:
+    q = None
+    session = None
+
     def __init__(self):
         with open('credentials.secret') as secrets:
             credentials = json.load(secrets)
@@ -111,7 +138,9 @@ class DBConnector:
 
     # takes a list of mapped objects and commits to db
     def store(self, list):
-        session = self.Session()
+        if self.session is None:
+            self.session = self.Session()
+        session = self.session
         session.add_all(list)
         session.commit()
 
@@ -122,13 +151,38 @@ class DBConnector:
             .filter(Setup.profile == s.profile)\
             .filter(Setup.log_interval == s.log_interval)\
             .filter(Setup.mic_sensitivity_mV_per_Pa == s.mic_sensitivity_mV_per_Pa)\
-            .all()  # problem
+            .all()
         results = [res for res in q if False not in list(map(eq,res.range,s.range))]
+        session.close()
         if len(results) > 0:
             q = results[0]
         else:
             q = None
         return q
+
+    def refresh_weather(self):
+        session = self.Session()
+        self.q = list(session.query(WeatherSample).filter(WeatherSample.timestamp >
+                                                          (datetime.datetime.now() - datetime.timedelta(weeks=1))).all())
+        session.close()
+
+    def get_weather(self, timestamp):
+        if self.q is None:
+            db.refresh_weather()
+        q = self.q
+        if len(q) is 0:
+            return None
+
+        closest_weather = q[0]
+        closest_time = abs((timestamp - datetime.datetime(2000, 4, 4)).total_seconds())
+        for weather in q:
+            seconds = abs((timestamp - weather.timestamp).total_seconds())
+            if seconds < closest_time:
+                closest_weather = weather
+                closest_time = seconds
+        if closest_time > (60 * 60):
+            closest_weather = None
+        return closest_weather
 
 
 def write_to_file_timestamped(msg):
@@ -143,10 +197,28 @@ print(db)
 print(os.walk(log_directory))
 
 directories = [os.path.join(log_directory, directory) for directory in next(os.walk(log_directory))[1] if "PROCESSED" not in directory]
+if len(sys.argv) > 1:
+    if sys.argv[1] == '-weather':
+        import requests
+        url = 'http://data.netcetera.com/smn/smn/REH'
+        response = requests.get(url)
+        if response.status_code is not 200:
+            write_to_file_timestamped("ERROR: Weather could not be fetched")
+            sys.exit()
 
+        content = json.loads(response.content.decode('ISO-8859-1'))
+        write_to_file_timestamped("Weather fetched")
+
+        weather_sample = WeatherSample(station=content['station'], timestamp=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                       temperature=float(content['temperature']), sunshine=float(content['sunshine']),
+                                       precipitation=float(content['precipitation']),
+                                       wind_direction=float(content['windDirection']),
+                                       wind_speed=float(content['windSpeed']), gust_peak=float(content['gustPeak']),
+                                       humidity=float(content['humidity']))
+        db.store([weather_sample])
+        sys.exit()
 
 for directory in directories:
-
     paths = [os.path.join(directory, file) for file in next(os.walk(directory))[2]]
     if len(paths) < 2:
         pass
@@ -192,12 +264,14 @@ for directory in directories:
                                            LZeq_dt_dB=sample['LZeq_dt [dB]'],
                                            LZFmin_dt_dB=sample['LZFmin_dt [dB]'],LZFmax_dt_dB=sample['LZFmax_dt [dB]'],
                                            setup=setup,batch=batch_info)
+                level_sample.weather_sample = db.get_weather(level_sample.timestamp)
                 level_samples.append(level_sample)
 
             for sample in spectrum_dict['RTA LOG Results LZeq_dt']:
                 spectrum_sample = SpectrumSample(timestamp=sample['Timestamp'],band_hz=sample['Spectrum_Frequencies [Hz]'],
                                                  spectrum_LZeq_dt_f_dB=sample['Spectrum_LZeq_dt_f [dB]'], setup=setup,
                                                  batch=batch_info)
+                spectrum_sample.weather_sample = db.get_weather(level_sample.timestamp)
                 spectrum_samples.append(spectrum_sample)
 
             samples = []
