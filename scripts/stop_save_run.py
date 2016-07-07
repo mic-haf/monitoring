@@ -8,7 +8,7 @@ from ntixl2.message import *
 path = os.path.realpath(__file__)
 path = str(path).replace('.py', '.txt')
 
-max_allowed_storage_percentage = 5
+max_allowed_storage_percentage = 50
 
 
 def write_to_file_timestamped(message):

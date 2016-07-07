@@ -16,6 +16,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.sql.expression import cast
 
+#TODO: change working directory
 Base = declarative_base()
 log_path = os.path.realpath(__file__)
 log_path = str(log_path).replace('.py', '.txt')
@@ -23,7 +24,7 @@ record_path = os.path.dirname(os.path.realpath(__file__))+'/processed_datasets.t
 credentials_path = os.path.dirname(os.path.realpath(__file__))+'/credentials.secret'
 
 with open(credentials_path) as secrets:
-    print(credentials_path)
+    print("credentials at:" + credentials_path)
     log_directory = json.load(secrets)['path']
 
 
@@ -128,7 +129,7 @@ class DBConnector:
     session = None
 
     def __init__(self):
-        with open('credentials.secret') as secrets:
+        with open(credentials_path) as secrets:
             credentials = json.load(secrets)
         db_engine = create_engine("mysql://{}:{}@127.0.0.1:3333/{}".format(credentials['user'],
                                                                            credentials['password'],
@@ -216,6 +217,9 @@ if len(sys.argv) > 1:
                                        wind_speed=float(content['windSpeed']), gust_peak=float(content['gustPeak']),
                                        humidity=float(content['humidity']))
         db.store([weather_sample])
+        sys.exit()
+    else:
+        write_to_file_timestamped("Command not recognized")
         sys.exit()
 
 for directory in directories:
