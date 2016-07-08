@@ -22,10 +22,13 @@ log_path = os.path.realpath(__file__)
 log_path = str(log_path).replace('.py', '.txt')
 record_path = os.path.dirname(os.path.realpath(__file__))+'/processed_datasets.txt'
 credentials_path = os.path.dirname(os.path.realpath(__file__))+'/credentials.secret'
+min_Lz = 0
 
 with open(credentials_path) as secrets:
     print("credentials at:" + credentials_path)
-    log_directory = json.load(secrets)['path']
+    credentials = json.load(secrets)
+    log_directory = credentials['path']
+    min_Lz = credentials['min_LZeq_dt']
 
 
 def get_processed():
@@ -193,6 +196,15 @@ def write_to_file_timestamped(msg):
         logfile.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         logfile.write(' {0}\n'.format(msg))
 
+
+def evaluate_spectrum(sample):
+    level_s = [lev for lev in level_samples if sample.timestamp == lev.timestamp]
+    if level_s is None:
+        return True
+    LZ = level_s[0].LZeq_dt_dB
+    return LZ > min_Lz
+
+
 #try:
 db = DBConnector()
 print(db)
@@ -276,8 +288,11 @@ for directory in directories:
                 spectrum_sample = SpectrumSample(timestamp=sample['Timestamp'],band_hz=sample['Spectrum_Frequencies [Hz]'],
                                                  spectrum_LZeq_dt_f_dB=sample['Spectrum_LZeq_dt_f [dB]'], setup=setup,
                                                  batch=batch_info)
-                spectrum_sample.weather_sample = db.get_weather(level_sample.timestamp)
-                spectrum_samples.append(spectrum_sample)
+                spectrum_sample.weather_sample = db.get_weather(spectrum_sample.timestamp)
+                if evaluate_spectrum(spectrum_sample):
+                    spectrum_samples.append(spectrum_sample)
+                else:
+                    print("dropping sample")
 
             samples = []
             samples.extend(spectrum_samples)
