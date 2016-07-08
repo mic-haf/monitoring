@@ -291,8 +291,6 @@ for directory in directories:
                 spectrum_sample.weather_sample = db.get_weather(spectrum_sample.timestamp)
                 if evaluate_spectrum(spectrum_sample):
                     spectrum_samples.append(spectrum_sample)
-                else:
-                    print("dropping sample")
 
             samples = []
             samples.extend(spectrum_samples)
