@@ -199,7 +199,7 @@ def write_to_file_timestamped(msg):
 
 def evaluate_spectrum(sample):
     level_s = [lev for lev in level_samples if sample.timestamp == lev.timestamp]
-    if level_s is None:
+    if level_s is None or len(level_s) is 0:
         return True
     LZ = level_s[0].LZeq_dt_dB
     return LZ > min_Lz
