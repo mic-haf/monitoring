@@ -131,9 +131,10 @@ class DBConnector:
     def __init__(self):
         with open(credentials_path) as secrets:
             credentials = json.load(secrets)
-        db_engine = create_engine("mysql://{}:{}@127.0.0.1:3333/{}".format(credentials['user'],
-                                                                           credentials['password'],
-                                                                           credentials['database']))
+        db_engine = create_engine("mysql://{}:{}@127.0.0.1:{}/{}".format(credentials['user'],
+                                                                        credentials['password'],
+                                                                        credentials['port'],
+                                                                        credentials['database']))
         Base.metadata.create_all(bind=db_engine)
         self.Session = sessionmaker(bind=db_engine)
 
